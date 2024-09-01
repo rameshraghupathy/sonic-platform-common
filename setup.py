@@ -37,7 +37,7 @@ setup(
         'sonic_platform_base',
         'sonic_platform_base.sonic_eeprom',
         'sonic_platform_base.sonic_sfp',
-        'sonic_platform_base.sonic_ssd',
+        'sonic_platform_base.sonic_storage',
         'sonic_platform_base.sonic_pcie',
         'sonic_platform_base.sonic_thermal_control',
         'sonic_platform_base.sonic_xcvr',
@@ -52,6 +52,7 @@ setup(
         'sonic_platform_base.sonic_xcvr.api.credo',
         'sonic_platform_base.sonic_xcvr.mem_maps.credo',
         'sonic_platform_base.sonic_xcvr.codes.credo',
+        'sonic_platform_base.sonic_xcvr.api.innolight',
         'sonic_psu',
         'sonic_sfp',
         'sonic_thermal',
@@ -64,7 +65,7 @@ setup(
     # This dependency should be eliminated by moving portconfig.py
     # functionality into sonic-py-common
     install_requires=[
-        'natsort==6.2.1', # 6.2.1 is the last version which supports Python 2
+        'natsort',
         'PyYAML',
         'redis',
     ] + sonic_dependencies,

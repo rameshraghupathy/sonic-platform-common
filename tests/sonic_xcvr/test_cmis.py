@@ -1375,6 +1375,7 @@ class TestCmis(object):
                     'Errored Frames Maximum Media Input':{1:[0, 1, 0, 1, 0, False, False, False, False]},
                     'Errored Frames Average Media Input':{1:[0, 1, 0, 1, 0, False, False, False, False]},
                     'Errored Frames Current Value Media Input':{1:[0, 1, 0, 1, 0, False, False, False, False]},
+                    'Pre-FEC BER Current Value Host Input':{1: [2.66e-09, 1e-05, 0.0, 1e-06, 0.0, False, False, False, False], 2: [1.0, 1e-05, 0.0, 1e-06, 0.0, False, False, False, False], 3: [1.0, 1e-05, 0.0, 1e-06, 0.0, False, False, False, False], 4: [1.0, 1e-05, 0.0, 1e-06, 0.0, False, False, False, False]},
                 }
             ],
             {
@@ -1387,11 +1388,15 @@ class TestCmis(object):
                 'tx1bias': 70, 'tx2bias': 70, 'tx3bias': 70, 'tx4bias': 70,
                 'tx5bias': 70, 'tx6bias': 70, 'tx7bias': 70, 'tx8bias': 70,
                 'laser_temperature': 40,
-                'prefec_ber': 0.001,
-                'postfec_ber_min': 0,
-                'postfec_ber_max': 0,
-                'postfec_ber_avg': 0,
-                'postfec_curr_val': 0,
+                'prefec_ber_avg_media_input1': 0.001,
+                'errored_frames_min_media_input1': 0,
+                'errored_frames_max_media_input1': 0,
+                'errored_frames_avg_media_input1': 0,
+                'errored_frames_curr_media_input1': 0,
+                'prefec_ber_curr_host_input1': 2.66e-09,
+                'prefec_ber_curr_host_input2': 1.0,
+                'prefec_ber_curr_host_input3': 1.0,
+                'prefec_ber_curr_host_input4': 1.0
             }
         ),
         (
@@ -2172,6 +2177,91 @@ class TestCmis(object):
         assert result[1]['host_lane_assignment_options'] == 0x01
         assert result[1]['media_lane_assignment_options'] == 0x02
 
+    def test_get_application_advertisement_apps_with_missing_data(self):
+        self.api.xcvr_eeprom.read = MagicMock()
+        self.api.xcvr_eeprom.read.side_effect = [
+            {
+                consts.HOST_ELECTRICAL_INTERFACE + "_1": "400GAUI-8 C2M (Annex 120E)",
+                consts.HOST_ELECTRICAL_INTERFACE + "_2": None,
+                consts.HOST_ELECTRICAL_INTERFACE + "_3": "200GAUI-8 C2M (Annex 120C)",
+                consts.HOST_ELECTRICAL_INTERFACE + "_4": "40GBASE-CR4 (Clause 85)",
+                consts.HOST_ELECTRICAL_INTERFACE + "_5": "50GBASE-CR (Clause 126)",
+                consts.HOST_ELECTRICAL_INTERFACE + "_6": "200GBASE-CR4 (Clause 136)",
+                consts.HOST_ELECTRICAL_INTERFACE + "_7": "200GAUI-2-S C2M (Annex 120G)",
+                consts.HOST_ELECTRICAL_INTERFACE + "_8": "800G S C2M (placeholder)",
+
+                consts.MODULE_MEDIA_INTERFACE_SM + "_1": "400GBASE-DR4 (Cl 124)",
+                consts.MODULE_MEDIA_INTERFACE_SM + "_2": "25GBASE-LR (Cl 114)",
+                consts.MODULE_MEDIA_INTERFACE_SM + "_3": "40GBASE-LR4 (Cl 87)",
+                consts.MODULE_MEDIA_INTERFACE_SM + "_4": None,
+                consts.MODULE_MEDIA_INTERFACE_SM + "_5": "10GBASE-LR (Cl 52)",
+                consts.MODULE_MEDIA_INTERFACE_SM + "_6": "50GBASE-FR (Cl 139)",
+                consts.MODULE_MEDIA_INTERFACE_SM + "_7": "100GBASE-DR (Cl 140)",
+                consts.MODULE_MEDIA_INTERFACE_SM + "_8": "800GBASE-DR8 (placeholder)",
+
+                consts.MEDIA_LANE_COUNT + "_1": 4,
+                consts.MEDIA_LANE_COUNT + "_2": 4,
+                consts.MEDIA_LANE_COUNT + "_3": 4,
+                consts.MEDIA_LANE_COUNT + "_4": 4,
+                consts.MEDIA_LANE_COUNT + "_5": None,
+                consts.MEDIA_LANE_COUNT + "_6": 4,
+                consts.MEDIA_LANE_COUNT + "_7": 4,
+                consts.MEDIA_LANE_COUNT + "_8": 4,
+
+                consts.HOST_LANE_COUNT + "_1": 8,
+                consts.HOST_LANE_COUNT + "_2": 8,
+                consts.HOST_LANE_COUNT + "_3": 8,
+                consts.HOST_LANE_COUNT + "_4": 8,
+                consts.HOST_LANE_COUNT + "_5": 8,
+                consts.HOST_LANE_COUNT + "_6": 8,
+                consts.HOST_LANE_COUNT + "_7": 8,
+                consts.HOST_LANE_COUNT + "_8": None,
+
+                consts.HOST_LANE_ASSIGNMENT_OPTION + "_1": 0x01,
+                consts.HOST_LANE_ASSIGNMENT_OPTION + "_2": 0x01,
+                consts.HOST_LANE_ASSIGNMENT_OPTION + "_3": 0x01,
+                consts.HOST_LANE_ASSIGNMENT_OPTION + "_4": 0x01,
+                consts.HOST_LANE_ASSIGNMENT_OPTION + "_5": 0x01,
+                consts.HOST_LANE_ASSIGNMENT_OPTION + "_6": 0x01,
+                consts.HOST_LANE_ASSIGNMENT_OPTION + "_7": None,
+                consts.HOST_LANE_ASSIGNMENT_OPTION + "_8": 0x01,
+
+                consts.MEDIA_LANE_ASSIGNMENT_OPTION + "_1": 0x02,
+                consts.MEDIA_LANE_ASSIGNMENT_OPTION + "_2": 0x02,
+                consts.MEDIA_LANE_ASSIGNMENT_OPTION + "_3": 0x02,
+                consts.MEDIA_LANE_ASSIGNMENT_OPTION + "_4": 0x02,
+                consts.MEDIA_LANE_ASSIGNMENT_OPTION + "_5": 0x02,
+                consts.MEDIA_LANE_ASSIGNMENT_OPTION + "_6": 0x02,
+                consts.MEDIA_LANE_ASSIGNMENT_OPTION + "_7": 0x02,
+                consts.MEDIA_LANE_ASSIGNMENT_OPTION + "_8": 0x02
+            },
+            Sff8024.MODULE_MEDIA_TYPE[2],
+            None,
+            Sff8024.MODULE_MEDIA_TYPE[2],
+            Sff8024.MODULE_MEDIA_TYPE[2],
+            Sff8024.MODULE_MEDIA_TYPE[2],
+            Sff8024.MODULE_MEDIA_TYPE[2],
+            Sff8024.MODULE_MEDIA_TYPE[2],
+            Sff8024.MODULE_MEDIA_TYPE[2]
+        ]
+        result = self.api.get_application_advertisement()
+
+        assert len(result) == 2
+
+        assert result[1]['host_electrical_interface_id'] == '400GAUI-8 C2M (Annex 120E)'
+        assert result[1]['module_media_interface_id'] == '400GBASE-DR4 (Cl 124)'
+        assert result[1]['host_lane_count'] == 8
+        assert result[1]['media_lane_count'] == 4
+        assert result[1]['host_lane_assignment_options'] == 0x01
+        assert result[1]['media_lane_assignment_options'] == 0x02
+
+        assert result[6]['host_electrical_interface_id'] == '200GBASE-CR4 (Clause 136)'
+        assert result[6]['module_media_interface_id'] == '50GBASE-FR (Cl 139)'
+        assert result[6]['host_lane_count'] == 8
+        assert result[6]['media_lane_count'] == 4
+        assert result[6]['host_lane_assignment_options'] == 0x01
+        assert result[6]['media_lane_assignment_options'] == 0x02
+
     def test_get_application_advertisement_non_support(self):
         self.api.xcvr_eeprom.read = MagicMock(return_value = None)
         self.api.is_flat_memory = MagicMock(return_value = False)
@@ -2225,6 +2315,39 @@ class TestCmis(object):
         self.api.xcvr_eeprom.write.call_count = 0
         self.api.set_application(0x7fffffff, 1, 1)
         assert self.api.xcvr_eeprom.write.call_count == self.api.NUM_CHANNELS
+
+    @pytest.mark.parametrize("datapath_state,config_state", [
+        ( {
+            'DP1State': 'DataPathDeactivated',
+            'DP2State': 'DataPathDeactivated',
+            'DP3State': 'DataPathDeactivated',
+            'DP4State': 'DataPathDeactivated',
+            'DP5State': 'DataPathDeactivated',
+            'DP6State': 'DataPathDeactivated',
+            'DP7State': 'DataPathDeactivated',
+            'DP8State': 'DataPathDeactivated',
+          },
+          {
+            'ConfigStatusLane1': 'ConfigSuccess',
+            'ConfigStatusLane2': 'ConfigSuccess',
+            'ConfigStatusLane3': 'ConfigSuccess',
+            'ConfigStatusLane4': 'ConfigSuccess',
+            'ConfigStatusLane5': 'ConfigSuccess',
+            'ConfigStatusLane6': 'ConfigSuccess',
+            'ConfigStatusLane7': 'ConfigSuccess',
+            'ConfigStatusLane8': 'ConfigSuccess' 
+          } )
+    ])
+    def test_decommission_all_datapaths(self, datapath_state, config_state):
+        self.api.xcvr_eeprom.read = MagicMock()
+        self.api.xcvr_eeprom.write = MagicMock()
+        self.api.set_datapath_deinit = MagicMock(return_value = True)
+
+        self.api.get_datapath_state = MagicMock()
+        self.api.get_datapath_state.return_value = datapath_state
+        self.api.get_config_datapath_hostlane_status = MagicMock()
+        self.api.get_config_datapath_hostlane_status.return_value = config_state
+        assert True == self.api.decommission_all_datapaths()
 
     def test_set_module_si_eq_pre_settings(self):
         optics_si_dict = { "OutputEqPreCursorTargetRx":{

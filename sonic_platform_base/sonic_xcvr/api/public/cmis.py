@@ -21,6 +21,29 @@ from collections import defaultdict
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
+CMIS_VDM_KEY_TO_DB_PREFIX_KEY_MAP = {
+    "eSNR Media Input [dB]" : "esnr_media_input",
+    "PAM4 Level Transition Parameter Media Input [dB]" : "pam4_level_transition_media_input",
+    "Pre-FEC BER Minimum Media Input" : "prefec_ber_min_media_input",
+    "Pre-FEC BER Maximum Media Input" : "prefec_ber_max_media_input",
+    "Pre-FEC BER Average Media Input" : "prefec_ber_avg_media_input",
+    "Pre-FEC BER Current Value Media Input" : "prefec_ber_curr_media_input",
+    "Errored Frames Minimum Media Input" : "errored_frames_min_media_input",
+    "Errored Frames Maximum Media Input" : "errored_frames_max_media_input",
+    "Errored Frames Average Media Input" : "errored_frames_avg_media_input",
+    "Errored Frames Current Value Media Input" : "errored_frames_curr_media_input",
+    "eSNR Host Input [dB]" : "esnr_host_input",
+    "PAM4 Level Transition Parameter Host Input [dB]" : "pam4_level_transition_host_input",
+    "Pre-FEC BER Minimum Host Input" : "prefec_ber_min_host_input",
+    "Pre-FEC BER Maximum Host Input" : "prefec_ber_max_host_input",
+    "Pre-FEC BER Average Host Input" : "prefec_ber_avg_host_input",
+    "Pre-FEC BER Current Value Host Input" : "prefec_ber_curr_host_input",
+    "Errored Frames Minimum Host Input" : "errored_frames_min_host_input",
+    "Errored Frames Maximum Host Input" : "errored_frames_max_host_input",
+    "Errored Frames Average Host Input" : "errored_frames_avg_host_input",
+    "Errored Frames Current Value Host Input" : "errored_frames_curr_host_input"
+}
+
 class CmisApi(XcvrApi):
     NUM_CHANNELS = 8
     LowPwrRequestSW = 4
@@ -233,13 +256,17 @@ class CmisApi(XcvrApi):
         self.vdm_dict = self.get_vdm(self.vdm.VDM_REAL_VALUE)
         try:
             bulk_status['laser_temperature'] = laser_temp_dict['monitor value']
-            bulk_status['prefec_ber'] = self.vdm_dict['Pre-FEC BER Average Media Input'][1][0]
-            bulk_status['postfec_ber_min'] = self.vdm_dict['Errored Frames Minimum Media Input'][1][0]
-            bulk_status['postfec_ber_max'] = self.vdm_dict['Errored Frames Maximum Media Input'][1][0]
-            bulk_status['postfec_ber_avg'] = self.vdm_dict['Errored Frames Average Media Input'][1][0]
-            bulk_status['postfec_curr_val'] = self.vdm_dict['Errored Frames Current Value Media Input'][1][0]
         except (KeyError, TypeError):
             pass
+
+        for vdm_key, db_key in CMIS_VDM_KEY_TO_DB_PREFIX_KEY_MAP.items():
+            for lane in range(1, self.NUM_CHANNELS + 1):
+                try:
+                    bulk_status_key = "%s%d" % (db_key, lane)
+                    bulk_status[bulk_status_key] = self.vdm_dict[vdm_key][lane][0]
+                except (KeyError, TypeError):
+                    pass
+
         return bulk_status
 
     def get_transceiver_threshold_info(self):
@@ -2034,34 +2061,34 @@ class CmisApi(XcvrApi):
             key = "{}_{}".format(consts.HOST_ELECTRICAL_INTERFACE, app)
             val = dic.get(key)
             if val in [None, 'Unknown', 'Undefined']:
-                break
+                continue
             buf['host_electrical_interface_id'] = val
 
             prefix = map.get(self.xcvr_eeprom.read(consts.MEDIA_TYPE_FIELD))
             if prefix is None:
-                break
+                continue
             key = "{}_{}".format(prefix, app)
             val = dic.get(key)
             if val in [None, 'Unknown']:
-                break
+                continue
             buf['module_media_interface_id'] = val
 
             key = "{}_{}".format(consts.MEDIA_LANE_COUNT, app)
             val = dic.get(key)
             if val is None:
-                break
+                continue
             buf['media_lane_count'] = val
 
             key = "{}_{}".format(consts.HOST_LANE_COUNT, app)
             val = dic.get(key)
             if val is None:
-                break
+                continue
             buf['host_lane_count'] = val
 
             key = "{}_{}".format(consts.HOST_LANE_ASSIGNMENT_OPTION, app)
             val = dic.get(key)
             if val is None:
-                break
+                continue
             buf['host_lane_assignment_options'] = val
 
             key = "{}_{}".format(consts.MEDIA_LANE_ASSIGNMENT_OPTION, app)
@@ -2122,6 +2149,31 @@ class CmisApi(XcvrApi):
         This function applies DataPathInit
         '''
         return self.xcvr_eeprom.write("%s_%d" % (consts.STAGED_CTRL_APPLY_DPINIT_FIELD, 0), channel)
+
+    def decommission_all_datapaths(self):
+        '''
+            Return True if all datapaths are successfully de-commissioned, False otherwise
+        '''
+        # De-init all datpaths
+        self.set_datapath_deinit((1 << self.NUM_CHANNELS) - 1)
+        # Decommision all lanes by apply AppSel=0
+        self.set_application(((1 << self.NUM_CHANNELS) - 1), 0, 0)
+        # Start with AppSel=0 i.e undo any default AppSel
+        self.scs_apply_datapath_init((1 << self.NUM_CHANNELS) - 1)
+
+        dp_state = self.get_datapath_state()
+        config_state = self.get_config_datapath_hostlane_status()
+
+        for lane in range(self.NUM_CHANNELS):
+            name = "DP{}State".format(lane + 1)
+            if dp_state[name] != 'DataPathDeactivated':
+                return False
+            
+            name = "ConfigStatusLane{}".format(lane + 1)
+            if config_state[name] != 'ConfigSuccess':
+                return False
+
+        return True
 
     def get_rx_output_amp_max_val(self):
         '''
